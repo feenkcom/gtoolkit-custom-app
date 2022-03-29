@@ -77,7 +77,7 @@ jobs:
         uses: actions/checkout@v2 
 
       - name: Checkout GToolkit VM Repository Code
-        uses: ./.github/actions/checkout-gtoolkit-vm
+        uses: feenkcom/gtoolkit-custom-app/.github/actions/checkout-gtoolkit-vm@main
 
       - name: Download GToolkit VM Builder
         working-directory: ${{ env.GTOOLKIT_VM_DIR }}
