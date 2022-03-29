@@ -245,7 +245,7 @@ jobs:
             --notarize-app \
             --verbose \
             --username "${{ secrets.apple_developer_login }}" \
-            --password "${{ secrets.apple_developer_password }}" \
+            --password "${{ secrets.apple_developer_password }}"
         if: ${{ env.SHOULD_NOTARIZE_USING_CERTIFICATE == false }}
 
       - name: Upload VM Build As Workflow Artifact
