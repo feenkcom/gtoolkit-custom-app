@@ -1,0 +1,119 @@
+name: Release Workflow Artifacts
+on:
+  workflow_call:
+
+    inputs: 
+      artifacts:
+        description: 'List of workflow artifacts split by ` ` (space) characters, e.g., `"GlamorousToolkit-x86_64-apple-darwin.app.zip GlamorousToolkit-x86_64-pc-windows-msvc.zip"`, that should be uploaded as an existing or new version'
+        required: true
+        type: string
+      version: 
+        description: 'Version under which artifacts should be uploaded. If "bump" is set, a new version will be released.'
+        required: false
+        default: "bump"
+        type: string
+
+    outputs:
+      version: 
+        description: 'Release version, e.g., `v0.1.42`'
+        value: ${{ jobs.Release.outputs.version }}
+
+    secrets:
+      github_token: 
+        description: 'GitHub token value with release and upload permissions.'
+        required: true
+
+env:
+  GTOOLKIT_VM_DIR: 'gtoolkit-vm'
+  APP_LIBRARIES_VERSIONS: 'libraries.version'
+
+jobs:
+  Release: 
+    runs-on: ubuntu-latest
+
+    outputs:
+      version: ${{ steps.variables.outputs.version }}
+
+    env: 
+      TARGET: 'x86_64-unknown-linux-gnu'
+
+    steps: 
+
+      - name: Checkout Repository Code
+        uses: actions/checkout@v2 
+
+      - name: Checkout GToolkit VM Builder
+        uses: ./.github/actions/checkout-code
+
+      - name: Define Tool Versions
+        uses: ./.github/actions/tool-versions
+
+      - name: Define Repository Name
+        shell: bash
+        run: |
+          REPOSITORY_NAME="$(echo ${{ github.repository }} | sed -n -e 's@^[^/]*/\([^/]*\)@\1@p')"
+          echo REPOSITORY_NAME=${REPOSITORY_NAME} >> $GITHUB_ENV
+          echo REPOSITORY_NAME=${REPOSITORY_NAME}
+          REPOSITORY_OWNER="${{ github.repository_owner }}"
+          echo REPOSITORY_OWNER=${REPOSITORY_OWNER} >> $GITHUB_ENV
+          echo REPOSITORY_OWNER=${REPOSITORY_OWNER}
+
+      - name: Parse Assets
+        run: |
+          echo ${{ inputs.assets }} \
+            | tr " " "\n" \
+            | sed -e 's%^\(.*\)$%${{ inputs.app_name }}-\1.zip/${{ inputs.app_name }}-\1.zip%' \
+            | tr "\n" " " \
+            | sed -e 's/^/RELEASE_ASSETS=/' >> $GITHUB_ENV
+
+      - name: Download All VM Artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: ${{ env.GTOOLKIT_VM_DIR }}
+
+      - name: Display Files
+        working-directory: ${{ env.GTOOLKIT_VM_DIR }}
+        run: |
+          ls -la
+          ls -la *.zip
+
+      - name: Download Feenk Releaser
+        shell: bash
+        working-directory: ${{ env.GTOOLKIT_VM_DIR }}
+        run: |
+          wget -O feenk-releaser https://github.com/feenkcom/releaser-rs/releases/download/${{ env.FEENK_RELEASER_VERSION }}/feenk-releaser-${{ env.TARGET }}
+          chmod +x feenk-releaser
+
+      - name: Release As New Version
+        env: 
+          GITHUB_TOKEN: ${{ secrets.github_token }}
+        working-directory: ${{ env.GTOOLKIT_VM_DIR }}
+        run: |
+          ./feenk-releaser \
+            --owner ${{ env.REPOSITORY_OWNER }} \
+            --repo ${{ env.REPOSITORY_NAME }} \
+            --token GITHUB_TOKEN \
+            --bump minor \
+            --auto-accept \
+            --assets ${{ env.RELEASE_ASSETS }}
+        if: ${{ inputs.version == "bump" }}
+      
+      - name: Release Into Existing Version
+        env: 
+          GITHUB_TOKEN: ${{ secrets.github_token }}
+        working-directory: ${{ env.GTOOLKIT_VM_DIR }}
+        run: |
+          ./feenk-releaser \
+            --owner ${{ env.REPOSITORY_OWNER }} \
+            --repo ${{ env.REPOSITORY_NAME }} \
+            --token GITHUB_TOKEN \
+            --version ${{ inputs.version }} \
+            --auto-accept \
+            --assets ${{ env.RELEASE_ASSETS }}
+        if: ${{ inputs.version != "bump" }}
+
+      # At this moment, it does return right values for bump versions
+      - name: Define Job Outputs
+        id: variables
+        run: |
+          echo "::set-output name=version::${{ env.FEENK_RELEASE_VERSION }}"
