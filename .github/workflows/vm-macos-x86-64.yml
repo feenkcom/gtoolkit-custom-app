@@ -209,7 +209,7 @@ jobs:
           cargo test --package vm-client-tests
 
       - name: Notarize VM Using Private Key
-        if: ${{ secrets.apple_developer_login == "" }}
+        if: "${{secrets.apple_developer_login}}" == ""
         working-directory: ${{ env.GTOOLKIT_VM_DIR }}
         run: |
           mkdir -p ./private_keys
@@ -225,7 +225,7 @@ jobs:
           rm ./private_keys/AuthKey_${{ secrets.api_key_id }}.p8
 
       - name: Notarize VM Using Apple Developer Login
-        if: ${{ secrets.apple_developer_login != "" }}
+        if: "${{secrets.apple_developer_login}}" != ""
         working-directory: ${{ env.GTOOLKIT_VM_DIR }}
         run: |
           xcrun altool \
