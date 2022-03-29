@@ -62,7 +62,7 @@ jobs:
       # In theory we do not need `LLVM_HOME` and `LIBCLANG_PATH`, but for some reason there is an issue with msys2 clang
       - name: Set Environment Variables
         run: |
-          $FEENK_VM_RELEASE_NAME=${{ inputs.app_name }}-${{ env.TARGET }}
+          $FEENK_VM_RELEASE_NAME="${{ inputs.app_name }}-${{ env.TARGET }}"
           $FEENK_VM_RELEASE_ZIP="$FEENK_VM_RELEASE_NAME.zip"
           echo FEENK_VM_RELEASE_NAME="$FEENK_VM_RELEASE_NAME" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf-8 -Append
           echo FEENK_VM_RELEASE_ZIP="$FEENK_VM_RELEASE_ZIP" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf-8 -Append
