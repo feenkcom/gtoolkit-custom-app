@@ -203,7 +203,7 @@ jobs:
         run: |
           ./feenk-signer \
             target/${{ env.TARGET }}/release/bundle/${{ inputs.app_name }}.app \
-            --entitlements ${{ inputs.product_entitlements_path }}
+            --entitlements ../${{ inputs.product_entitlements_path }}
 
       - name: Compress VM
         working-directory: ${{ env.GTOOLKIT_VM_DIR }}
