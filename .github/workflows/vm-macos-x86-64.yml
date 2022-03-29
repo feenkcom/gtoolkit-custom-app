@@ -105,37 +105,37 @@ jobs:
 
       - name: Checking Notarization Secrets
         run: |
-          if [ -z "${{ secrets.apple_developer_login }}" ] ; then \
-            if [ -z "${{ secrets.api_key_id }}" ] ; then \
-              echo "ERROR: Since `secrets.apple_developer_login` is empty, `secrets.api_key_id`` must be SET." >&2 \
-              exit 1 \
-            fi \
-            if [ -z "${{ secrets.api_issuer_id }}" ] ; then \
-              echo "ERROR: Since `secrets.apple_developer_login` is empty, `secrets.api_issuer_id`` must be SET." >&2 \
-              exit 2 \
-            fi \
-            if [ -z "${{ secrets.api_private_key }}" ] ; then \
-              echo "ERROR: Since `secrets.apple_developer_login` is empty, `secrets.api_private_key`` must be SET." >&2 \
-              exit 3 \
-            fi \
+          if [ -z "${{ secrets.apple_developer_login }}" ] ; then
+            if [ -z "${{ secrets.api_key_id }}" ] ; then
+              echo "ERROR: Since `secrets.apple_developer_login` is empty, `secrets.api_key_id`` must be SET." >&2
+              exit 1
+            fi
+            if [ -z "${{ secrets.api_issuer_id }}" ] ; then
+              echo "ERROR: Since `secrets.apple_developer_login` is empty, `secrets.api_issuer_id`` must be SET." >&2
+              exit 2
+            fi
+            if [ -z "${{ secrets.api_private_key }}" ] ; then
+              echo "ERROR: Since `secrets.apple_developer_login` is empty, `secrets.api_private_key`` must be SET." >&2
+              exit 3
+            fi
           fi
-          if [ ! -z "${{ secrets.apple_developer_login }}" ] ; then \
-            if [ -z "${{ secrets.apple_developer_password }}" ] ; then \
-              echo "ERROR: Since `secrets.apple_developer_login` is NOT empty, `secrets.apple_developer_password` must be SET." >&2 \
-              exit 4 \
-            fi \
-            if [ ! -z "${{ secrets.api_key_id }}" ] ; then \
-              echo "ERROR: Since `secrets.apple_developer_login` is NOT empty, `secrets.api_key_id`` must be EMPTY." >&2 \
-              exit 5 \
-            fi \
-            if [ -z "${{ secrets.api_issuer_id }}" ] ; then \
-              echo "ERROR: Since `secrets.apple_developer_login` is NOT empty, `secrets.api_issuer_id`` must be EMPTY." >&2 \
-              exit 6 \
-            fi \
-            if [ -z "${{ secrets.api_private_key }}" ] ; then \
-              echo "ERROR: Since `secrets.apple_developer_login` is NOT empty, `secrets.api_private_key`` must be EMPTY." >&2 \
-              exit 7 \
-            fi \
+          if [ ! -z "${{ secrets.apple_developer_login }}" ] ; then
+            if [ -z "${{ secrets.apple_developer_password }}" ] ; then
+              echo "ERROR: Since `secrets.apple_developer_login` is NOT empty, `secrets.apple_developer_password` must be SET." >&2
+              exit 4
+            fi
+            if [ ! -z "${{ secrets.api_key_id }}" ] ; then
+              echo "ERROR: Since `secrets.apple_developer_login` is NOT empty, `secrets.api_key_id`` must be EMPTY." >&2
+              exit 5
+            fi
+            if [ -z "${{ secrets.api_issuer_id }}" ] ; then
+              echo "ERROR: Since `secrets.apple_developer_login` is NOT empty, `secrets.api_issuer_id`` must be EMPTY." >&2
+              exit 6
+            fi
+            if [ -z "${{ secrets.api_private_key }}" ] ; then
+              echo "ERROR: Since `secrets.apple_developer_login` is NOT empty, `secrets.api_private_key`` must be EMPTY." >&2
+              exit 7
+            fi
           fi
 
       - name: Checkout Repository Code
