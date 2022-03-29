@@ -90,9 +90,9 @@ jobs:
         working-directory: ${{ env.GTOOLKIT_VM_DIR }}
         run: |
           ./gtoolkit-vm-builder \
-            --app-name ${{ inputs.app_name }} \
-            --identifier ${{ inputs.app_identifier }} \
-            --author ${{ inputs.app_author }} \
+            --app-name '${{ inputs.app_name }}' \
+            --identifier '${{ inputs.app_identifier }}' \
+            --author '${{ inputs.app_author }}' \
             --libraries ${{ inputs.app_libraries }} \
             --libraries-versions ${{ env.APP_LIBRARIES_VERSIONS }} \
             --release \
