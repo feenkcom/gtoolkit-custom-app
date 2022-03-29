@@ -39,6 +39,15 @@ jobs:
 
     steps: 
 
+      - name: Define Environment Variables
+        run: |
+          if [ -z "${{ inputs.version }}" -o "${{ inputs.version }}" = "bump" ]; then
+            SHOULD_BUMP_VERSION=true
+          else
+            SHOULD_BUMP_VERSION=false
+          fi
+          echo SHOULD_BUMP_VERSION=${SHOULD_BUMP_VERSION} >> $GITHUB_ENV
+
       - name: Checkout Repository Code
         uses: actions/checkout@v2 
 
@@ -96,7 +105,8 @@ jobs:
             --bump minor \
             --auto-accept \
             --assets ${{ env.RELEASE_ASSETS }}
-        if: ${{ inputs.version == "bump" }}
+          echo FEENK_RELEASE_VERSION=bump >> $GITHUB_ENV
+        if: ${{ env.SHOULD_BUMP_VERSION == true }}
       
       - name: Release Into Existing Version
         env: 
@@ -110,9 +120,10 @@ jobs:
             --version ${{ inputs.version }} \
             --auto-accept \
             --assets ${{ env.RELEASE_ASSETS }}
-        if: ${{ inputs.version != "bump" }}
+          echo FEENK_RELEASE_VERSION=${{ inputs.version }} >> $GITHUB_ENV
+        if: ${{ env.SHOULD_BUMP_VERSION == false }}
 
-      # At this moment, it does return right values for bump versions
+      # At this moment, it does NOT return right values for bump versions
       - name: Define Job Outputs
         id: variables
         run: |
