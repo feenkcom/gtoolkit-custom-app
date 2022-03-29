@@ -87,7 +87,6 @@ jobs:
       TARGET: 'x86_64-apple-darwin'
       APP_LIBRARIES_VERSIONS: 'libraries.version'
       GTOOLKIT_VM_DIR: 'gtoolkit-vm'
-      SHOULD_NOTARIZE_USING_CERTIFICATE: ${{ secrets.apple_developer_login == "" }}
 
     steps: 
 
