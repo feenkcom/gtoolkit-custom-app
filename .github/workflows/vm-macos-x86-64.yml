@@ -87,6 +87,7 @@ jobs:
       TARGET: 'x86_64-apple-darwin'
       APP_LIBRARIES_VERSIONS: 'libraries.version'
       GTOOLKIT_VM_DIR: 'gtoolkit-vm'
+      SHOULD_NOTARIZE_USING_CERTIFICATE: ${{ secrets.apple_developer_login == "" }}
 
     steps: 
 
@@ -209,7 +210,6 @@ jobs:
           cargo test --package vm-client-tests
 
       - name: Notarize VM Using Private Key
-        if: "${{secrets.apple_developer_login}}" == ""
         working-directory: ${{ env.GTOOLKIT_VM_DIR }}
         run: |
           mkdir -p ./private_keys
@@ -223,9 +223,9 @@ jobs:
             --apiKey "${{ secrets.api_key_id }}" \
             --apiIssuer "${{ secrets.api_issuer_id }}"
           rm ./private_keys/AuthKey_${{ secrets.api_key_id }}.p8
+        if: ${{ ! env.SHOULD_NOTARIZE_USING_CERTIFICATE }}
 
       - name: Notarize VM Using Apple Developer Login
-        if: "${{secrets.apple_developer_login}}" != ""
         working-directory: ${{ env.GTOOLKIT_VM_DIR }}
         run: |
           xcrun altool \
@@ -237,6 +237,7 @@ jobs:
             --verbose \
             --username "${{ secrets.apple_developer_login }}" \
             --password "${{ secrets.apple_developer_password }}" \
+        if: ${{ env.SHOULD_NOTARIZE_USING_CERTIFICATE }}
 
       - name: Upload VM Build As Workflow Artifact
         uses: actions/upload-artifact@v3
