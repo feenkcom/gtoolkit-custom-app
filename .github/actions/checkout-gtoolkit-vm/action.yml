@@ -1,0 +1,61 @@
+name: 'Checkout Source Code'
+description: 'Checkout source code to build VMs'
+# INPUT: I use env.GTOOLKIT_VM_DIR which defines a working directory where to checkout feenkcom/gtoolkit-vm
+
+runs:
+  using: "composite"
+  steps:
+
+    - name: Checkout GToolkit VM
+      uses: actions/checkout@v2
+      with: 
+        repository: feenkcom/gtoolkit-vm
+        path: ${{ env.GTOOLKIT_VM_DIR }}
+
+    - name: Initialize Submodule
+      shell: bash
+      working-directory: ${{ env.GTOOLKIT_VM_DIR }}
+      run: |
+        git submodule update --init --recursive
+
+    - name: Set VM Builder Version
+      shell: bash
+      working-directory: ${{ env.GTOOLKIT_VM_DIR }}
+      run: |
+        echo "VM_BUILDER_VERSION=$(sed -n '/./{p;q;}' vm-builder.version)" >> $GITHUB_ENV
+
+    - name: Set Feenk Releaser Version
+      shell: bash
+      working-directory: ${{ env.GTOOLKIT_VM_DIR }}
+      run: |
+        echo "FEENK_RELEASER_VERSION=$(sed -n '/./{p;q;}' feenk-releaser.version)" >> $GITHUB_ENV
+
+    - name: Set Feenk Signer Version
+      shell: bash
+      working-directory: ${{ env.GTOOLKIT_VM_DIR }}
+      run: |
+        echo "FEENK_SIGNER_VERSION=$(sed -n '/./{p;q;}' feenk-signer.version)" >> $GITHUB_ENV
+
+    - name: Version Summary
+      shell: bash
+      run: | 
+        echo "Will build using gtoolkit-vm-builder ${{ env.VM_BUILDER_VERSION }}"
+        echo "Will release using feenk-releaser ${{ env.FEENK_RELEASER_VERSION }}"
+        echo "Will sign using feenk-signer ${{ env.FEENK_SIGNER_VERSION }}"
+
+    - name: Version Checks
+      shell: bash
+      run: >
+        if [ -z "${{ env.VM_BUILDER_VERSION }}" ] ; then 
+          echo ERROR: VM_BUILDER_VERSION is empty >&2
+          exit 1
+        fi;
+        if [ -z "${{ env.FEENK_RELEASER_VERSION }}" ] ; then 
+          echo ERROR: FEENK_RELEASER_VERSION is empty >&2
+          exit 2
+        fi;
+        if [ -z "${{ env.FEENK_SIGNER_VERSION }}" ] ; then 
+          echo ERROR: FEENK_SIGNER_VERSION is empty >&2
+          exit 3
+        fi
+        

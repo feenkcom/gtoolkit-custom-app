@@ -1,0 +1,127 @@
+name: Custom VM Build Workflow for Linux
+# I am a workflow that builds a Glamorous Toolkit based VM with a custom name and icon.
+# I upload a resulting VM build as a workflow artifact.
+
+on:
+  workflow_call:
+    inputs: 
+      app_name:
+        description: 'Application name, e.g., `GlamorousToolkit``, that will define a VM build, e.g., `GlamorousToolkit.app`'
+        required: true
+        type: string
+      app_author:
+        description: 'Author identification, e.g., `"feenk gmbh" <contact@feenk.com>`'
+        required: true
+        type: string
+      app_identifier:
+        description: 'Application identifier, e.g., `com.feenk.gtoolkit`'
+        required: true
+        type: string
+      app_libraries:
+        description: 'Application libraries to include in a VM build'
+        required: false
+        type: string
+        default: 'boxer cairo clipboard crypto freetype git gleam glutin process sdl2 skia'
+
+    outputs:
+      linux_release_name: 
+        description: 'Release application name, e.g., `GlamorousToolkit-x86_64-unknown-linux-gnu`'
+        value: ${{ jobs.Linux_x86_64.outputs.linux_release_name }}
+      linux_release_zip: 
+        description: 'Release zip file name, e.g., `GlamorousToolkit-x86_64-unknown-linux-gnu.zip`'
+        value: ${{ jobs.Linux_x86_64.outputs.linux_release_zip }}
+
+jobs:
+  Linux_x86_64:
+    runs-on: ubuntu-18.04
+
+    outputs:
+      linux_release_name: ${{ steps.variables.outputs.linux_release_name }}
+      linux_release_zip: ${{ steps.variables.outputs.linux_release_zip }}
+
+    env: 
+      TARGET: 'x86_64-unknown-linux-gnu'
+      APP_LIBRARIES_VERSIONS: 'libraries.version'
+      GTOOLKIT_VM_DIR: 'gtoolkit-vm'
+
+    steps: 
+
+      - name: Define Environment Variables
+        run: |
+          FEENK_VM_RELEASE_NAME="${{ inputs.app_name }}-${{ env.TARGET }}"
+          FEENK_VM_RELEASE_ZIP="${FEENK_VM_RELEASE_NAME}.zip"
+          echo FEENK_VM_RELEASE_NAME=${FEENK_VM_RELEASE_NAME} >> $GITHUB_ENV
+          echo FEENK_VM_RELEASE_ZIP=${FEENK_VM_RELEASE_ZIP} >> $GITHUB_ENV
+
+      - name: Checkout Repository Code
+        uses: actions/checkout@v2 
+
+      - name: Checkout GToolkit VM Repository Code
+        uses: ./.github/actions/checkout-gtoolkit-vm
+
+      - name: Install Prerequisites
+        run: | 
+          sudo snap install rustup --classic
+          sudo apt install libgtk-3-dev libssl-dev clang llvm lld pkg-config uuid-dev
+
+      - name: Download GToolkit VM Builder
+        shell: bash
+        working-directory: ${{ env.GTOOLKIT_VM_DIR }}
+        run: |
+          curl \
+            -o gtoolkit-vm-builder \
+            -LsS https://github.com/feenkcom/gtoolkit-vm-builder/releases/download/${{ env.VM_BUILDER_VERSION }}/gtoolkit-vm-builder-${{ env.TARGET }}
+          chmod +x gtoolkit-vm-builder
+
+      - name: Prerequisite Versions
+        run: |
+          rustc --version
+          rustup --version
+          cargo --version
+
+      - name: List Files
+        working-directory: ${{ env.GTOOLKIT_VM_DIR }}
+        run: |
+          ls -la .
+
+      - name: Build VM 
+        env: 
+          RUST_BACKTRACE: full
+        working-directory: ${{ env.GTOOLKIT_VM_DIR }}
+        run: |
+          ./gtoolkit-vm-builder \
+            --app-name ${{ inputs.app_name }} \
+            --identifier ${{ inputs.app_identifier }} \
+            --author ${{ inputs.app_author }} \
+            --libraries ${{ inputs.app_libraries }} \
+            --libraries-versions ${{ env.APP_LIBRARIES_VERSIONS }} \
+            --release \
+            --verbose
+
+      - name: Compress VM
+        working-directory: ${{ env.GTOOLKIT_VM_DIR }}/target/${{ env.TARGET }}/release/bundle/${{ inputs.app_name }}/
+        run: |
+          zip -r ${{ env.FEENK_VM_RELEASE_ZIP }} .
+
+      - name: Run Cargo Tests
+        env: 
+          RUST_BACKTRACE: full
+          VM_CLIENT_EXECUTABLE: ${{ github.workspace }}/${{ env.GTOOLKIT_VM_DIR }}/target/${{ env.TARGET }}/release/bundle/${{ inputs.app_name }}/bin/${{ inputs.app_name }}-cli
+        working-directory: ${{ env.GTOOLKIT_VM_DIR }}
+        run: |
+          cargo test --package vm-client-tests
+
+      - name: VM Build Temporary Archive
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ env.FEENK_VM_RELEASE_ZIP }}
+          path: ${{ env.GTOOLKIT_VM_DIR }}/target/${{ env.TARGET }}/release/bundle/${{ inputs.app_name }}/${{ env.FEENK_VM_RELEASE_ZIP }}
+          retention-days: 1
+          if-no-files-found: error
+
+      - name: Define Job Outputs
+        id: variables
+        run: |
+          echo "::set-output name=linux_release_name::${{ env.FEENK_VM_RELEASE_NAME }}"
+          echo "::set-output name=linux_release_zip::${{ env.FEENK_VM_RELEASE_ZIP }}"
+

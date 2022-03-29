@@ -1,0 +1,254 @@
+name: Custom VM Build Workflow for macOS
+# I am a workflow that builds a Glamorous Toolkit based VM with a custom name and icon.
+# I sign and notarize the VM.
+# I upload a resulting VM build as a workflow artifact.
+
+on:
+  workflow_call:
+    inputs: 
+      app_name:
+        description: 'Application name, e.g., `GlamorousToolkit`, that will define a VM build, e.g., `GlamorousToolkit.app`'
+        required: true
+        type: string
+      app_author:
+        description: 'Author identification, e.g., `"feenk gmbh" <contact@feenk.com>`'
+        required: true
+        type: string
+      app_icons:
+        description: 'One or more .icns file names that contain application icons of different sizes, e.g., `GlamorousToolkit.icns`'
+        required: true
+        type: string
+      app_identifier:
+        description: 'Application identifier, e.g., `com.feenk.gtoolkit-vm`'
+        required: true
+        type: string
+      app_primary_bundle_id:
+        description: 'Application primary ID used to notarize a VM build, e.g., `com.feenk.gtoolkit-vm-x86-64`'
+        required: true
+        type: string
+      app_libraries:
+        description: 'Application libraries to include in a VM build'
+        required: false
+        type: string
+        default: 'boxer cairo clipboard crypto freetype git gleam glutin process sdl2 skia'
+
+    outputs:
+      macos_release_name: 
+        description: 'Release application name, e.g., `GlamorousToolkit-x86_64-apple-darwin.app`'
+        value: ${{ jobs.MacOS_x86_64.outputs.macos_release_name }}
+      macos_release_zip: 
+        description: 'Release zip file name, e.g., `GlamorousToolkit-x86_64-apple-darwin.app.zip`'
+        value: ${{ jobs.MacOS_x86_64.outputs.macos_release_zip }}
+
+    secrets:
+        # Signing Secrets
+        signing_identity:
+          description: 'Developer ID Application, e.g., `"Developer ID Application: feenkcom gmbh (...ID...)"`'
+          required: true
+        certificate: 
+          description: 'An Apple macOS Developer ID Application Distribution P12 File Content To Sign VM Builds'
+          required: true
+        certificate_password: 
+          description: 'Password for the certificate P12 file content'
+          required: true
+        
+        # Notarization Secrets
+        itc_provider:
+          description: 'Apple Team ID that is used for notarization as `xcrun altool ... -itc_provider ID` parameter'
+          required: true
+        # There are two options to authenticate for build notarizations:
+        # the first option is using Apple Developer login and password
+        apple_developer_login:
+          description: 'Apple Developer login name with rights to notarize applications, e.g., `joedoe@example.com`'
+          required: false
+        apple_developer_password:
+          description: 'Apple Developer password'
+          required: false
+        # the second option is using API Key ID, API Issuer ID, and API Private Key
+        api_key_id: 
+          description: 'Apple macOS App Store API Key ID'
+          required: false
+        api_issuer_id:
+          description: 'Apple macOS App Store API Issuer ID'
+          required: false
+        api_private_key:
+          description: 'Apple macOS App Store API Private Key'
+          required: false
+
+jobs:
+  MacOS_x86_64:
+    runs-on: macos-11 # macOS Big Sur 11
+
+    outputs:
+      macos_release_name: ${{ steps.variables.outputs.macos_release_name }}
+      macos_release_zip: ${{ steps.variables.outputs.macos_release_zip }}
+
+    env: 
+      TARGET: 'x86_64-apple-darwin'
+      APP_LIBRARIES_VERSIONS: 'libraries.version'
+      GTOOLKIT_VM_DIR: 'gtoolkit-vm'
+
+    steps: 
+
+      - name: Checking Notarization Secrets
+        run: |
+          if [ -z "${{ secrets.apple_developer_login }}" ] ; then \
+            if [ -z "${{ secrets.api_key_id }}" ] ; then \
+              echo "ERROR: Since `secrets.apple_developer_login` is empty, `secrets.api_key_id`` must be SET." >&2 \
+              exit 1 \
+            fi \
+            if [ -z "${{ secrets.api_issuer_id }}" ] ; then \
+              echo "ERROR: Since `secrets.apple_developer_login` is empty, `secrets.api_issuer_id`` must be SET." >&2 \
+              exit 2 \
+            fi \
+            if [ -z "${{ secrets.api_private_key }}" ] ; then \
+              echo "ERROR: Since `secrets.apple_developer_login` is empty, `secrets.api_private_key`` must be SET." >&2 \
+              exit 3 \
+            fi \
+          fi
+          if [ ! -z "${{ secrets.apple_developer_login }}" ] ; then \
+            if [ -z "${{ secrets.apple_developer_password }}" ] ; then \
+              echo "ERROR: Since `secrets.apple_developer_login` is NOT empty, `secrets.apple_developer_password` must be SET." >&2 \
+              exit 4 \
+            fi \
+            if [ ! -z "${{ secrets.api_key_id }}" ] ; then \
+              echo "ERROR: Since `secrets.apple_developer_login` is NOT empty, `secrets.api_key_id`` must be EMPTY." >&2 \
+              exit 5 \
+            fi \
+            if [ -z "${{ secrets.api_issuer_id }}" ] ; then \
+              echo "ERROR: Since `secrets.apple_developer_login` is NOT empty, `secrets.api_issuer_id`` must be EMPTY." >&2 \
+              exit 6 \
+            fi \
+            if [ -z "${{ secrets.api_private_key }}" ] ; then \
+              echo "ERROR: Since `secrets.apple_developer_login` is NOT empty, `secrets.api_private_key`` must be EMPTY." >&2 \
+              exit 7 \
+            fi \
+          fi
+
+      - name: Define Environment Variables
+        run: |
+          FEENK_VM_RELEASE_NAME="${{ inputs.app_name }}-${{ env.TARGET }}.app"
+          FEENK_VM_RELEASE_ZIP="${FEENK_VM_RELEASE_NAME}.zip"
+          echo FEENK_VM_RELEASE_NAME=${FEENK_VM_RELEASE_NAME} >> $GITHUB_ENV
+          echo FEENK_VM_RELEASE_ZIP=${FEENK_VM_RELEASE_ZIP} >> $GITHUB_ENV
+
+      - name: Checkout Repository Code
+        uses: actions/checkout@v2 
+
+      - name: Checkout GToolkit VM Repository Code
+        uses: ./.github/actions/checkout-gtoolkit-vm
+
+      - name: Download GToolkit VM Builder
+        shell: bash
+        working-directory: ${{ env.GTOOLKIT_VM_DIR }}
+        run: |
+          curl \
+            -o gtoolkit-vm-builder \
+            -LsS https://github.com/feenkcom/gtoolkit-vm-builder/releases/download/${{ env.VM_BUILDER_VERSION }}/gtoolkit-vm-builder-${{ env.TARGET }}
+          chmod +x gtoolkit-vm-builder
+
+      - name: Download Feenk Signer VM
+        shell: bash
+        working-directory: ${{ env.GTOOLKIT_VM_DIR }}
+        run: |
+          curl \
+            -o feenk-signer \
+            -LsS https://github.com/feenkcom/feenk-signer/releases/download/${{ env.FEENK_SIGNER_VERSION }}/feenk-signer-${{ env.TARGET }}
+          chmod +x feenk-signer
+
+      - name: Display Prerequisite Versions
+        run: |
+          rustc --version
+          rustup --version
+          cargo --version
+          xcrun altool --version
+
+      - name: List Files
+        working-directory: ${{ env.GTOOLKIT_VM_DIR }}
+        run: |
+          ls -la .
+
+      - name: Build VM 
+        env: 
+          RUST_BACKTRACE: full
+        working-directory: ${{ env.GTOOLKIT_VM_DIR }}
+        run: |
+          ./gtoolkit-vm-builder \
+            --app-name ${{ inputs.app_name }} \
+            --identifier ${{ inputs.app_identifier }} \
+            --author ${{ inputs.app_author }} \
+            --icons ../${{ inputs.app_icons }} \
+            --libraries ${{ inputs.app_libraries }} \
+            --libraries-versions ${{ env.APP_LIBRARIES_VERSIONS }} \
+            --release \
+            --verbose
+
+      - name: Sign VM
+        env:
+          CERT: ${{ secrets.certificate }}
+          CERT_PASSWORD: ${{ secrets.certificate_password }}
+          SIGNING_IDENTITY: ${{ secrets.signing_identity }}
+          RUST_BACKTRACE: full
+        working-directory: ${{ env.GTOOLKIT_VM_DIR }}
+        run: |
+          ./feenk-signer \
+            target/${{ env.TARGET }}/release/bundle/${{ inputs.app_name }}.app \
+            --entitlements ../Product.entitlements
+
+      - name: Compress VM
+        working-directory: ${{ env.GTOOLKIT_VM_DIR }}
+        run: |
+          ditto -c -k --sequesterRsrc --keepParent target/${{ env.TARGET }}/release/bundle/${{ inputs.app_name }}.app ${{ env.FEENK_VM_RELEASE_ZIP }}
+
+      - name: Run Cargo Tests
+        working-directory: ${{ env.GTOOLKIT_VM_DIR }}
+        env:
+          RUST_BACKTRACE: full
+          VM_CLIENT_EXECUTABLE: ${{ github.workspace }}/${{ env.GTOOLKIT_VM_DIR }}/target/${{ env.TARGET }}/release/bundle/${{ inputs.app_name }}.app/Contents/MacOS/${{ inputs.app_name }}-cli
+        run: |
+          cargo test --package vm-client-tests
+
+      - name: Notarize VM Using Private Key
+        if: ${{ secrets.apple_developer_login == "" }}
+        working-directory: ${{ env.GTOOLKIT_VM_DIR }}
+        run: |
+          mkdir -p ./private_keys
+          echo ${{ secrets.api_private_key }} | base64 -d > ./private_keys/AuthKey_${{ secrets.api_key_id }}.p8
+          xcrun altool \
+            -t osx \
+            -f ${{ env.FEENK_VM_RELEASE_ZIP }} \
+            --primary-bundle-id ${{ inputs.app_primary_bundle_id }} \
+            --notarize-app \
+            --verbose \
+            --apiKey "${{ secrets.api_key_id }}" \
+            --apiIssuer "${{ secrets.api_issuer_id }}"
+          rm ./private_keys/AuthKey_${{ secrets.api_key_id }}.p8
+
+      - name: Notarize VM Using Apple Developer Login
+        if: ${{ secrets.apple_developer_login != "" }}
+        working-directory: ${{ env.GTOOLKIT_VM_DIR }}
+        run: |
+          xcrun altool \
+            -t osx \
+            -f ${{ env.FEENK_VM_RELEASE_ZIP }} \
+            -itc_provider ${{ secrets.itc_provider }}
+            --primary-bundle-id ${{ inputs.app_primary_bundle_id }} \
+            --notarize-app \
+            --verbose \
+            --username "${{ secrets.apple_developer_login }}" \
+            --password "${{ secrets.apple_developer_password }}" \
+
+      - name: Upload VM Build As Workflow Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ env.FEENK_VM_RELEASE_ZIP }}
+          path: ${{ env.GTOOLKIT_VM_DIR }}/${{ env.FEENK_VM_RELEASE_ZIP }}
+          retention-days: 1
+          if-no-files-found: error
+
+      - name: Define Job Outputs
+        id: variables
+        run: |
+          echo "::set-output name=macos_release_name::${{ env.FEENK_VM_RELEASE_NAME }}"
+          echo "::set-output name=macos_release_zip::${{ env.FEENK_VM_RELEASE_ZIP }}"
+          

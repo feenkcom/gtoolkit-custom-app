@@ -1,0 +1,138 @@
+name: Custom VM Build Workflow for macOS
+# I am a workflow that builds a Glamorous Toolkit based VM with a custom name and icon.
+# I upload a resulting VM build as a workflow artifact.
+
+on:
+  workflow_call:
+    inputs: 
+      app_name:
+        description: 'Application name, e.g., `GlamorousToolkit``, that will define a VM build, e.g., `GlamorousToolkit.app`'
+        required: true
+        type: string
+      app_author:
+        description: 'Author identification, e.g., `"feenk gmbh" <contact@feenk.com>`'
+        required: true
+        type: string
+      app_icons:
+        description: 'One or more .icns file names that contain application icons of different sizes, e.g., `GlamorousToolkit.icns`'
+        required: true
+        type: string
+      app_identifier:
+        description: 'Application identifier, e.g., `com.feenk.gtoolkit`'
+        required: true
+        type: string
+      app_libraries:
+        description: 'Application libraries to include in a VM build'
+        required: false
+        type: string
+        default: 'boxer cairo clipboard crypto freetype git gleam glutin process sdl2 skia'
+
+    outputs:
+      windows_release_name: 
+        description: 'Release application name, e.g., `GlamorousToolkit-x86_64-pc-windows-msvc`'
+        value: ${{ jobs.Windows_x86_64.outputs.windows_release_name }}
+      windows_release_zip: 
+        description: 'Release zip file name, e.g., `GlamorousToolkit-x86_64-pc-windows-msvc.zip`'
+        value: ${{ jobs.Windows_x86_64.outputs.windows_release_zip }}
+
+jobs:
+  Windows_x86_64:
+    runs-on: windows-2019
+
+    outputs:
+      windows_release_name: ${{ steps.variables.outputs.windows_release_name }}
+      windows_release_zip: ${{ steps.variables.outputs.windows_release_zip }}
+
+    env: 
+      TARGET: 'x86_64-pc-windows-msvc'
+      VISUAL_STUDIO_2019_PATH: 'C:\Program Files (x86)\Microsoft Visual Studio\2019'
+      GTOOLKIT_VM_DIR: 'gtoolkit-vm'
+      APP_LIBRARIES_VERSIONS: 'libraries.version'
+    steps: 
+
+      - name: Pre-Installed Application Versions
+        run: |
+          echo RUSTC
+          rustc --version
+          echo RUSTUP
+          rustup --version
+          echo CARGO
+          cargo --version
+
+      # In theory we do not need `LLVM_HOME` and `LIBCLANG_PATH`, but for some reason there is an issue with msys2 clang
+      - name: Set Environment Variables
+        run: |
+          $FEENK_VM_RELEASE_NAME=${{ inputs.app_name }}-${{ env.TARGET }}
+          $FEENK_VM_RELEASE_ZIP="$FEENK_VM_RELEASE_NAME.zip"
+          echo FEENK_VM_RELEASE_NAME="$FEENK_VM_RELEASE_NAME" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf-8 -Append
+          echo FEENK_VM_RELEASE_ZIP="$FEENK_VM_RELEASE_ZIP" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf-8 -Append
+          $LLVM_HOME="${{ env.VISUAL_STUDIO_2019_PATH }}\Enterprise\VC\Tools\Llvm\x64"
+          echo LLVM_HOME="$LLVM_HOME" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf-8 -Append
+          echo LIBCLANG_PATH="$LLVM_HOME\bin" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf-8 -Append
+          $VM_CLIENT_ROOT_PATH="target\${{ env.TARGET }}\release\bundle\${{ inputs.app_name }}" 
+          echo VM_CLIENT_ROOT_PATH="$VM_CLIENT_ROOT_PATH" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf-8 -Append
+          echo VM_CLIENT_EXECUTABLE="${{ github.workspace }}\${{ env.GTOOLKIT_VM_DIR }}\$VM_CLIENT_ROOT_PATH\bin\${{ inputs.app_name }}-cli.exe" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf-8 -Append
+
+      - name: Checkout Repository Code
+        uses: actions/checkout@v2 
+
+      - name: Checkout GToolkit VM Repository Code
+        uses: ./.github/actions/checkout-gtoolkit-vm
+
+      - name: Download GToolkit VM Builder
+        working-directory: ${{ env.GTOOLKIT_VM_DIR }}
+        run: |
+          curl.exe `
+            -o gtoolkit-vm-builder.exe `
+            -LsS https://github.com/feenkcom/gtoolkit-vm-builder/releases/download/${{ env.VM_BUILDER_VERSION }}/gtoolkit-vm-builder-${{ env.TARGET }}.exe
+        
+      - name: List Files
+        shell: bash
+        working-directory: ${{ env.GTOOLKIT_VM_DIR }}
+        run: |
+          ls -la .
+
+      - name: Build VM 
+        env: 
+          RUST_BACKTRACE: full
+        working-directory: ${{ env.GTOOLKIT_VM_DIR }}
+        run: |
+          ./gtoolkit-vm-builder.exe `
+            --app-name ${{ inputs.app_name }} `
+            --identifier ${{ inputs.app_identifier }} `
+            --author ${{ inputs.app_author }} `
+            --icons ..\${{ inputs.app_icons }} `
+            --libraries ${{ inputs.app_libraries }} `
+            --libraries-versions ${{ env.APP_LIBRARIES_VERSIONS }} `
+            --release `
+            --verbose
+
+      - name: Compress VM
+        working-directory: ${{ env.GTOOLKIT_VM_DIR }}
+        run: |
+          Compress-Archive -Path ${{ env.VM_CLIENT_ROOT_PATH }}\* -DestinationPath ${{ env.FEENK_VM_RELEASE_ZIP }}
+
+      - name: List VM_CLIENT_ROOT_PATH
+        shell: bash
+        working-directory: ${{ env.GTOOLKIT_VM_DIR }}
+        run: |
+          find '${{ env.VM_CLIENT_ROOT_PATH }}' -print
+
+      - name: Run Cargo Tests
+        working-directory: ${{ env.GTOOLKIT_VM_DIR }}
+        run: |
+          cargo test --package vm-client-tests
+
+      - name: VM Build Temporary Archive
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ env.FEENK_VM_RELEASE_ZIP }}
+          path: ${{ env.GTOOLKIT_VM_DIR }}/${{ env.FEENK_VM_RELEASE_ZIP }}
+          retention-days: 1
+          if-no-files-found: error
+
+      - name: Define Job Outputs
+        id: variables
+        run: |
+          echo "::set-output name=windows_release_name::${{ env.FEENK_VM_RELEASE_NAME }}"
+          echo "::set-output name=windows_release_zip::${{ env.FEENK_VM_RELEASE_ZIP }}"
