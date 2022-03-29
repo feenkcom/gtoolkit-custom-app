@@ -19,7 +19,7 @@ on:
         value: ${{ jobs.Release.outputs.version }}
 
     secrets:
-      github_token: 
+      release_token: 
         description: 'GitHub token value with release and upload permissions.'
         required: true
 
@@ -86,7 +86,7 @@ jobs:
 
       - name: Release As New Version
         env: 
-          GITHUB_TOKEN: ${{ secrets.github_token }}
+          GITHUB_TOKEN: ${{ secrets.release_token }}
         working-directory: ${{ env.GTOOLKIT_VM_DIR }}
         run: |
           ./feenk-releaser \
@@ -100,7 +100,7 @@ jobs:
       
       - name: Release Into Existing Version
         env: 
-          GITHUB_TOKEN: ${{ secrets.github_token }}
+          GITHUB_TOKEN: ${{ secrets.release_token }}
         working-directory: ${{ env.GTOOLKIT_VM_DIR }}
         run: |
           ./feenk-releaser \
