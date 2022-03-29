@@ -92,10 +92,10 @@ jobs:
 
       - name: Define Environment Variables
         run: |
-          if [ -z "${{ secrets.apple_developer_login }}" ] ; then \
-            SHOULD_NOTARIZE_USING_CERTIFICATE=true \
-          else \
-            SHOULD_NOTARIZE_USING_CERTIFICATE=false \
+          if [ -z "${{ secrets.apple_developer_login }}" ] ; then
+            SHOULD_NOTARIZE_USING_CERTIFICATE=true
+          else
+            SHOULD_NOTARIZE_USING_CERTIFICATE=false
           fi
           FEENK_VM_RELEASE_NAME="${{ inputs.app_name }}-${{ env.TARGET }}.app"
           FEENK_VM_RELEASE_ZIP="${FEENK_VM_RELEASE_NAME}.zip"
