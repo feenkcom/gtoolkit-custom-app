@@ -111,7 +111,7 @@ jobs:
 
       - name: Debug notarize_using_certificate 
         run: |
-          echo "steps.environment.notarize_using_certificate = `${{ steps.environment.notarize_using_certificate }}`"
+          echo "steps.environment.notarize_using_certificate = `${{ toJSON(steps.environment.notarize_using_certificate) }}`"
 
       - name: Debug notarize_using_certificate is true
         run: |
