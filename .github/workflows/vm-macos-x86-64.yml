@@ -117,12 +117,12 @@ jobs:
       - name: Debug notarize_using_certificate is true
         run: |
           echo "steps.environment.notarize_using_certificate is true"
-        if: ${{ env.FEENK_NOTARIZE_USING_CERTIFICATE }} == 'true' }}
+        if: ${{ fromJSON(env.FEENK_NOTARIZE_USING_CERTIFICATE) }}
 
       - name: Debug notarize_using_certificate is false
         run: |
           echo "steps.environment.notarize_using_certificate is false"
-        if: ${{ env.FEENK_NOTARIZE_USING_CERTIFICATE }} == 'false' }}
+        if: ${{ ! fromJSON(env.FEENK_NOTARIZE_USING_CERTIFICATE) }}
 
       - name: Checking Notarization Secrets
         run: |
@@ -249,7 +249,7 @@ jobs:
             --apiKey "${{ secrets.api_key_id }}" \
             --apiIssuer "${{ secrets.api_issuer_id }}"
           rm ./private_keys/AuthKey_${{ secrets.api_key_id }}.p8
-        if: ${{ fromJSON(steps.environment.notarize_using_certificate) }}
+        if: ${{ fromJSON(env.FEENK_NOTARIZE_USING_CERTIFICATE) }}
 
       - name: Notarize VM Using Apple Developer Login And Password
         working-directory: ${{ env.GTOOLKIT_VM_DIR }}
@@ -263,7 +263,7 @@ jobs:
             --verbose \
             --username '${{ secrets.apple_developer_login }}' \
             --password '${{ secrets.apple_developer_password }}'
-        if: ${{ ! fromJSON(steps.environment.notarize_using_certificate) }}
+        if: ${{ ! fromJSON(env.FEENK_NOTARIZE_USING_CERTIFICATE) }}
 
       - name: Upload VM Build As Workflow Artifact
         uses: actions/upload-artifact@v3
