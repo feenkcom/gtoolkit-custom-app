@@ -109,20 +109,10 @@ jobs:
           echo FEENK_VM_RELEASE_NAME=${FEENK_VM_RELEASE_NAME} >> $GITHUB_ENV
           echo FEENK_VM_RELEASE_ZIP=${FEENK_VM_RELEASE_ZIP} >> $GITHUB_ENV
 
-      - name: Debug notarize_using_certificate 
+      - name: Print Environment Variables
         run: |
           echo "RAW  FEENK_NOTARIZE_USING_CERTIFICATE = >>>${{ env.FEENK_NOTARIZE_USING_CERTIFICATE }}<<<"
           echo "JSON FEENK_NOTARIZE_USING_CERTIFICATE = >>>${{ fromJSON(env.FEENK_NOTARIZE_USING_CERTIFICATE) }}<<<"
-
-      - name: Debug notarize_using_certificate is true
-        run: |
-          echo "FEENK_NOTARIZE_USING_CERTIFICATE is true"
-        if: ${{ fromJSON(env.FEENK_NOTARIZE_USING_CERTIFICATE) }}
-
-      - name: Debug notarize_using_certificate is false
-        run: |
-          echo "FEENK_NOTARIZE_USING_CERTIFICATE is false"
-        if: ${{ ! fromJSON(env.FEENK_NOTARIZE_USING_CERTIFICATE) }}
 
       - name: Checking Notarization Secrets
         run: |

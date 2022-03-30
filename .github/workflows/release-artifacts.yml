@@ -50,28 +50,10 @@ jobs:
             echo "FEENK_BUMP_VERSION=false" >> $GITHUB_ENV
           fi
 
-      - name: Debug bump_version
+      - name: Print Environment Variables
         run: |
-          echo "RAW The FEENK_BUMP_VERSION value is: >>>${{ env.FEENK_BUMP_VERSION }}<<<"
-          echo "JSON The FEENK_BUMP_VERSION value is: >>>${{ fromJSON(env.FEENK_BUMP_VERSION) }}<<<"
-
-      - name: Debug bump_version == true
-        run: |
-          echo "The inputs.version value is '${{ inputs.version }}'."
-          if [ ( ! -z "${{ inputs.version }}" ) -o ( ! "${{ inputs.version }}" = "bump" ) ]; then
-            echo "ERROR: The inputs.version value must be empty or bump" >&2
-            exit 2
-          fi
-        if: ${{ fromJSON(env.FEENK_BUMP_VERSION) }}
-
-      - name: Debug bump_version == false
-        run: |
-          echo "The inputs.version value is '${{ inputs.version }}'."
-          if [ -z "${{ inputs.version }}" -o "${{ inputs.version }}" = "bump" ]; then
-            echo "ERROR: The inputs.version value must be a version" >&2
-            exit 1
-          fi
-        if: ${{ ! fromJSON(env.FEENK_BUMP_VERSION) }}
+          echo "RAW FEENK_BUMP_VERSION value is: >>>${{ env.FEENK_BUMP_VERSION }}<<<"
+          echo "JSON FEENK_BUMP_VERSION value is: >>>${{ fromJSON(env.FEENK_BUMP_VERSION) }}<<<"
 
       - name: Checkout Repository Code
         uses: actions/checkout@v2 
