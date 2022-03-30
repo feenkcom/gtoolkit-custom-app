@@ -116,7 +116,7 @@ jobs:
       - name: Debug notarize_using_certificate is true
         run: |
           echo "steps.environment.notarize_using_certificate is true"
-        if: ${{ steps.environment.notarize_using_certificate == "true" }}
+        if: ${{ steps.environment.notarize_using_certificate == 'true' }}
 
       - name: Debug notarize_using_certificate is false
         run: |
