@@ -43,8 +43,10 @@ jobs:
         id: environment
         run: |
           if [ -z "${{ inputs.version }}" -o "${{ inputs.version }}" = "bump" ]; then
+            echo "Feenk Releaser will create a new version (git tag)."
             echo "::set-output name=bump_version::true"
           else
+            echo "Feenk Releaser will use an existing version (git tag): ${{ inputs.version }}."
             echo "::set-output name=bump_version::false"
           fi
 
