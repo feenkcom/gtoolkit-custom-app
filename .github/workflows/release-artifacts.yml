@@ -76,18 +76,30 @@ jobs:
         with:
           path: ${{ env.GTOOLKIT_VM_DIR }}
 
-      - name: Display Files
-        working-directory: ${{ env.GTOOLKIT_VM_DIR }}
-        run: |
-          ls -la
-          ls -la *.zip
-
       - name: Download Feenk Releaser
         shell: bash
         working-directory: ${{ env.GTOOLKIT_VM_DIR }}
         run: |
           wget -O feenk-releaser https://github.com/feenkcom/releaser-rs/releases/download/${{ env.FEENK_RELEASER_VERSION }}/feenk-releaser-${{ env.TARGET }}
           chmod +x feenk-releaser
+
+      - name: Display Files
+        working-directory: ${{ env.GTOOLKIT_VM_DIR }}
+        run: |
+          echo "::group::List Working Directory"
+          ls -la
+          echo "::endgroup::"
+          echo "::group::List Artifacts"
+          ls -la ${{ inputs.artifacts }}
+          echo "::endgroup::"
+
+      # Artifacts are located in subdirectories of the same name as artifacts.
+      # We need to add subdirectory prefixes.
+      - name: Define Artifact Locations
+        run: |
+          FEENK_ARTIFACT_LOCATIONS="$(echo '${{ inputs.artifacts }}' | tr -s ' ' '\n' | sed -e 's@^.*$@&/&@' | tr '\n' ' ')"
+          echo FEENK_ARTIFACT_LOCATIONS="${FEENK_ARTIFACT_LOCATIONS}" >> $GITHUB_ENV
+          echo FEENK_ARTIFACT_LOCATIONS="${FEENK_ARTIFACT_LOCATIONS}"
 
       - name: Release As New Version
         env: 
@@ -100,7 +112,7 @@ jobs:
             --token GITHUB_TOKEN \
             --bump minor \
             --auto-accept \
-            --assets ${{ inputs.artifacts }}
+            --assets ${{ env.FEENK_ARTIFACT_LOCATIONS }}
           echo FEENK_RELEASE_VERSION=bump >> $GITHUB_ENV
         if: ${{ fromJSON(env.FEENK_BUMP_VERSION) }}
       
@@ -115,7 +127,7 @@ jobs:
             --token GITHUB_TOKEN \
             --version ${{ inputs.version }} \
             --auto-accept \
-            --assets ${{ inputs.artifacts }}
+            --assets ${{ env.FEENK_ARTIFACT_LOCATIONS }}
           echo FEENK_RELEASE_VERSION=${{ inputs.version }} >> $GITHUB_ENV
         if: ${{ ! fromJSON(env.FEENK_BUMP_VERSION) }}
 
