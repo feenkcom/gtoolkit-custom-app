@@ -40,13 +40,13 @@ jobs:
     steps: 
 
       - name: Define Environment Variables
+        id: environment
         run: |
           if [ -z "${{ inputs.version }}" -o "${{ inputs.version }}" = "bump" ]; then
-            SHOULD_BUMP_VERSION=true
+            echo "::set-output name=bump_version::true"
           else
-            SHOULD_BUMP_VERSION=false
+            echo "::set-output name=bump_version::false"
           fi
-          echo SHOULD_BUMP_VERSION=${SHOULD_BUMP_VERSION} >> $GITHUB_ENV
 
       - name: Checkout Repository Code
         uses: actions/checkout@v2 
@@ -63,14 +63,6 @@ jobs:
           REPOSITORY_OWNER="${{ github.repository_owner }}"
           echo REPOSITORY_OWNER=${REPOSITORY_OWNER} >> $GITHUB_ENV
           echo REPOSITORY_OWNER=${REPOSITORY_OWNER}
-
-      - name: Parse Assets
-        run: |
-          echo ${{ inputs.assets }} \
-            | tr " " "\n" \
-            | sed -e 's%^\(.*\)$%${{ inputs.app_name }}-\1.zip/${{ inputs.app_name }}-\1.zip%' \
-            | tr "\n" " " \
-            | sed -e 's/^/RELEASE_ASSETS=/' >> $GITHUB_ENV
 
       - name: Download All VM Artifacts
         uses: actions/download-artifact@v3
@@ -101,9 +93,9 @@ jobs:
             --token GITHUB_TOKEN \
             --bump minor \
             --auto-accept \
-            --assets ${{ env.RELEASE_ASSETS }}
+            --assets ${{ inputs.artifacts }}
           echo FEENK_RELEASE_VERSION=bump >> $GITHUB_ENV
-        if: ${{ env.SHOULD_BUMP_VERSION == true }}
+        if: ${{ steps.environment.bump_version == true }}
       
       - name: Release Into Existing Version
         env: 
@@ -116,9 +108,9 @@ jobs:
             --token GITHUB_TOKEN \
             --version ${{ inputs.version }} \
             --auto-accept \
-            --assets ${{ env.RELEASE_ASSETS }}
+            --assets ${{ inputs.artifacts }}
           echo FEENK_RELEASE_VERSION=${{ inputs.version }} >> $GITHUB_ENV
-        if: ${{ env.SHOULD_BUMP_VERSION == false }}
+        if: ${{ steps.environment.bump_version == false }}
 
       # At this moment, it does NOT return right values for bump versions
       - name: Define Job Outputs
