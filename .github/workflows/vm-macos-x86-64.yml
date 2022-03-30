@@ -98,8 +98,10 @@ jobs:
         id: environment
         run: |
           if [ -z "${{ secrets.apple_developer_login }}" ] ; then
+            echo The xcrun altool notarization tool will authenticate using a certificate.
             echo "::set-output name=notarize_using_certificate::true"
           else
+            echo The xcrun altool notarization tool will authenticate using a username and password.
             echo "::set-output name=notarize_using_certificate::false"
           fi
           FEENK_VM_RELEASE_NAME="${{ inputs.app_name }}-${{ env.TARGET }}.app"
