@@ -66,7 +66,7 @@ on:
           description: 'Apple Developer login name with rights to notarize applications, e.g., `joedoe@example.com`'
           required: false
         apple_developer_password:
-          description: 'Apple Developer password'
+          description: 'Apple Developer password. It must be an app-specific password, not the regular user login password. You can generate one at https://appleid.apple.com.'
           required: false
         # the second option is using API Key ID, API Issuer ID, and API Private Key
         api_key_id: 
@@ -234,9 +234,9 @@ jobs:
             --apiKey "${{ secrets.api_key_id }}" \
             --apiIssuer "${{ secrets.api_issuer_id }}"
           rm ./private_keys/AuthKey_${{ secrets.api_key_id }}.p8
-        if: steps.environment.notarize_using_certificate == 'true'
+        if: ${{ fromJSON(steps.environment.notarize_using_certificate) }}
 
-      - name: Notarize VM Using Apple Developer Login
+      - name: Notarize VM Using Apple Developer Login And Password
         working-directory: ${{ env.GTOOLKIT_VM_DIR }}
         run: |
           xcrun altool \
@@ -248,7 +248,7 @@ jobs:
             --verbose \
             --username '${{ secrets.apple_developer_login }}' \
             --password '${{ secrets.apple_developer_password }}'
-        if: steps.environment.notarize_using_certificate == 'false'
+        if: ${{ ! fromJSON(steps.environment.notarize_using_certificate) }}
 
       - name: Upload VM Build As Workflow Artifact
         uses: actions/upload-artifact@v3
