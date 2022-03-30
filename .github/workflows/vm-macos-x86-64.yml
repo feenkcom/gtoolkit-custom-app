@@ -240,7 +240,7 @@ jobs:
           xcrun altool \
             -t osx \
             -f ${{ env.FEENK_VM_RELEASE_ZIP }} \
-            -itc_provider ${{ secrets.itc_provider }}
+            --itc_provider ${{ secrets.itc_provider }} \
             --primary-bundle-id ${{ inputs.app_primary_bundle_id }} \
             --notarize-app \
             --verbose \
