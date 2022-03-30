@@ -240,12 +240,12 @@ jobs:
           xcrun altool \
             -t osx \
             -f ${{ env.FEENK_VM_RELEASE_ZIP }} \
-            --itc_provider ${{ secrets.itc_provider }} \
-            --primary-bundle-id ${{ inputs.app_primary_bundle_id }} \
+            --itc_provider '${{ secrets.itc_provider }}' \
+            --primary-bundle-id '${{ inputs.app_primary_bundle_id }}' \
             --notarize-app \
             --verbose \
-            --username "${{ secrets.apple_developer_login }}" \
-            --password "${{ secrets.apple_developer_password }}"
+            --username '${{ secrets.apple_developer_login }}' \
+            --password '${{ secrets.apple_developer_password }}'
         if: ${{ steps.environment.notarize_using_certificate == false }}
 
       - name: Upload VM Build As Workflow Artifact
