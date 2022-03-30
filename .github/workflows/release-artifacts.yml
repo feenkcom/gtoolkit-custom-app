@@ -61,7 +61,7 @@ jobs:
             echo "ERROR: The inputs.version value must be empty or bump" >&2
             exit 2
           fi
-        if: ${{ steps.environment.bump_version == true }}
+        if: steps.environment.bump_version == 'true'
 
       - name: Debug bump_version == false
         run: |
@@ -70,7 +70,7 @@ jobs:
             echo "ERROR: The inputs.version value must be a version" >&2
             exit 1
           fi
-        if: ${{ steps.environment.bump_version == false }}
+        if: steps.environment.bump_version == 'false'
 
       - name: Checkout Repository Code
         uses: actions/checkout@v2 
@@ -119,7 +119,7 @@ jobs:
             --auto-accept \
             --assets ${{ inputs.artifacts }}
           echo FEENK_RELEASE_VERSION=bump >> $GITHUB_ENV
-        if: ${{ steps.environment.bump_version == true }}
+        if: steps.environment.bump_version == 'true'
       
       - name: Release Into Existing Version
         env: 
@@ -134,7 +134,7 @@ jobs:
             --auto-accept \
             --assets ${{ inputs.artifacts }}
           echo FEENK_RELEASE_VERSION=${{ inputs.version }} >> $GITHUB_ENV
-        if: ${{ steps.environment.bump_version == false }}
+        if: steps.environment.bump_version == 'false'
 
       # At this moment, it does NOT return right values for bump versions
       - name: Define Job Outputs

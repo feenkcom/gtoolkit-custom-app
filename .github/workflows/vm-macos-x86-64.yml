@@ -234,7 +234,7 @@ jobs:
             --apiKey "${{ secrets.api_key_id }}" \
             --apiIssuer "${{ secrets.api_issuer_id }}"
           rm ./private_keys/AuthKey_${{ secrets.api_key_id }}.p8
-        if: ${{ steps.environment.notarize_using_certificate == true }}
+        if: steps.environment.notarize_using_certificate == 'true'
 
       - name: Notarize VM Using Apple Developer Login
         working-directory: ${{ env.GTOOLKIT_VM_DIR }}
@@ -248,7 +248,7 @@ jobs:
             --verbose \
             --username '${{ secrets.apple_developer_login }}' \
             --password '${{ secrets.apple_developer_password }}'
-        if: ${{ steps.environment.notarize_using_certificate == false }}
+        if: steps.environment.notarize_using_certificate == 'false'
 
       - name: Upload VM Build As Workflow Artifact
         uses: actions/upload-artifact@v3
