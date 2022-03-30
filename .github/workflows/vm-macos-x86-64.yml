@@ -111,17 +111,17 @@ jobs:
 
       - name: Debug notarize_using_certificate 
         run: |
-          echo "RAW  steps.environment.notarize_using_certificate = >>>${{ env.FEENK_NOTARIZE_USING_CERTIFICATE }}<<<"
-          echo "JSON steps.environment.notarize_using_certificate = >>>${{ fromJSON(env.FEENK_NOTARIZE_USING_CERTIFICATE) }}<<<"
+          echo "RAW  FEENK_NOTARIZE_USING_CERTIFICATE = >>>${{ env.FEENK_NOTARIZE_USING_CERTIFICATE }}<<<"
+          echo "JSON FEENK_NOTARIZE_USING_CERTIFICATE = >>>${{ fromJSON(env.FEENK_NOTARIZE_USING_CERTIFICATE) }}<<<"
 
       - name: Debug notarize_using_certificate is true
         run: |
-          echo "steps.environment.notarize_using_certificate is true"
+          echo "FEENK_NOTARIZE_USING_CERTIFICATE is true"
         if: ${{ fromJSON(env.FEENK_NOTARIZE_USING_CERTIFICATE) }}
 
       - name: Debug notarize_using_certificate is false
         run: |
-          echo "steps.environment.notarize_using_certificate is false"
+          echo "FEENK_NOTARIZE_USING_CERTIFICATE is false"
         if: ${{ ! fromJSON(env.FEENK_NOTARIZE_USING_CERTIFICATE) }}
 
       - name: Checking Notarization Secrets
