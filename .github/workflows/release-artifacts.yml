@@ -51,11 +51,8 @@ jobs:
       - name: Checkout Repository Code
         uses: actions/checkout@v2 
 
-      - name: Checkout GToolkit VM Builder
-        uses: ./.github/actions/checkout-code
-
-      - name: Define Tool Versions
-        uses: ./.github/actions/tool-versions
+      - name: Checkout GToolkit VM Repository Code
+        uses: feenkcom/gtoolkit-custom-app/.github/actions/checkout-gtoolkit-vm@main
 
       - name: Define Repository Name
         shell: bash
