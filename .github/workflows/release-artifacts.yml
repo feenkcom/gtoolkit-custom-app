@@ -50,6 +50,28 @@ jobs:
             echo "::set-output name=bump_version::false"
           fi
 
+      - name: Debug bump_version
+        run: |
+          echo "The steps.environment.bump_version value is: '${{ steps.environment.bump_version }}'"
+
+      - name: Debug bump_version == true
+        run: |
+          echo "The inputs.version value is '${{ inputs.version }}'."
+          if [ ( ! -z "${{ inputs.version }}" ) -o ( ! "${{ inputs.version }}" = "bump" ) ]; then
+            echo "ERROR: The inputs.version value must be empty or bump" >&2
+            exit 2
+          fi
+        if: ${{ steps.environment.bump_version == true }}
+
+      - name: Debug bump_version == false
+        run: |
+          echo "The inputs.version value is '${{ inputs.version }}'."
+          if [ -z "${{ inputs.version }}" -o "${{ inputs.version }}" = "bump" ]; then
+            echo "ERROR: The inputs.version value must be a version" >&2
+            exit 1
+          fi
+        if: ${{ steps.environment.bump_version == false }}
+
       - name: Checkout Repository Code
         uses: actions/checkout@v2 
 
