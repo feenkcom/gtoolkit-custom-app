@@ -99,10 +99,10 @@ jobs:
         run: |
           if [ -z "${{ secrets.apple_developer_login }}" ] ; then
             echo The xcrun altool notarization tool will authenticate using a certificate.
-            echo "::set-output name=notarize_using_certificate::\"true\""
+            echo "::set-output name=notarize_using_certificate::'true'"
           else
             echo The xcrun altool notarization tool will authenticate using a username and password.
-            echo "::set-output name=notarize_using_certificate::\"false\""
+            echo "::set-output name=notarize_using_certificate::'false'"
           fi
           FEENK_VM_RELEASE_NAME="${{ inputs.app_name }}-${{ env.TARGET }}.app"
           FEENK_VM_RELEASE_ZIP="${FEENK_VM_RELEASE_NAME}.zip"
@@ -111,7 +111,8 @@ jobs:
 
       - name: Debug notarize_using_certificate 
         run: |
-          echo "steps.environment.notarize_using_certificate = `${{ toJSON(steps.environment.notarize_using_certificate) }}`"
+          echo "RAW  steps.environment.notarize_using_certificate = >>>${{ steps.environment.notarize_using_certificate }}<<<"
+          echo "JSON steps.environment.notarize_using_certificate = >>>${{ toJSON(steps.environment.notarize_using_certificate) }}<<<"
 
       - name: Debug notarize_using_certificate is true
         run: |
