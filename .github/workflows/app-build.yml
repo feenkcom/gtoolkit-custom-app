@@ -1,0 +1,200 @@
+name: Build App
+# Load code, test, and tag release image
+
+on:
+  workflow_call:
+
+    inputs:
+      app_name:
+        description: 'Application name, e.g., `GlamorousToolkit`, that will define an image name, e.g., `GlamorousToolkit.image`'
+        required: true
+        type: string
+      pharo_load_script_path:
+        description: 'Pharo load script filename that loads Pharo code and prepare image, e.g., `scripts/st/load-project.st`'
+        required: true
+        type: string
+      pharo_test_packages:
+        description: 'Pharo package names separated by ` ` (space) that includes examples to run, e.g., `"Project-Examples" "AnotherProject-*"`'
+        required: true
+        type: string
+      pharo_release_line_handler:
+        description: 'Pharo release line handler name that configure and executes GT Releaser, e.g., releaseProject'
+        required: true
+        type: string
+      pharo_release_version_line_handler:
+        description: 'Pharo line handler name that prints to the standard output release version created during `pharo_release_line_handler` execution, e.g., printProjectReleaseVersion'
+        required: true
+        type: string
+
+    outputs:
+      release_version: ${{ jobs.Build-App.outputs.release_version }}
+      release_image: ${{ jobs.Build-App.outputs.release_image }}
+      release_changes: ${{ jobs.Build-App.outputs.release_changes }}
+      release_zip: ${{ jobs.Build-App.outputs.release_zip }}
+
+    secrets:
+      gt_releaser_ssh_key:
+        description: 'A SSH Private Key used to create tags with GT Releaser. GT Releaser may need access other repositories to create tags, depending on the Releaser configuration.'
+        required: true
+
+jobs:
+  Build-App:
+    runs-on: ubuntu-18.04
+
+    outputs:
+      release_version: ${{ steps.variables.outputs.release_version }}
+      release_image: ${{ steps.variables.outputs.release_image }}
+      release_changes: ${{ steps.variables.outputs.release_changes }}
+      release_zip: ${{ steps.variables.outputs.release_zip }}
+
+    env: 
+      TARGET: 'x86_64-unknown-linux-gnu'
+      FEENK_GTOOLKIT_IMAGE_NAME: 'GlamorousToolkit.image'
+      FEENK_GTOOLKIT_CHANGES_NAME: 'GlamorousToolkit.changes'
+
+    steps:
+
+      - name: Define Environment Variables
+        run: |
+          FEENK_APPLICATION_RELEASE_NAME="${{ inputs.app_name }}-${{ env.TARGET }}"
+          FEENK_APPLICATION_RELEASE_IMAGE_NAME="${FEENK_APPLICATION_RELEASE_NAME}.image"
+          FEENK_APPLICATION_RELEASE_CHANGES_NAME="${FEENK_APPLICATION_RELEASE_NAME}.changes"
+          FEENK_APPLICATION_RELEASE_ZIP="${FEENK_APPLICATION_RELEASE_NAME}.zip"
+          echo FEENK_APPLICATION_RELEASE_NAME=${FEENK_APPLICATION_RELEASE_NAME} >> $GITHUB_ENV
+          echo FEENK_APPLICATION_RELEASE_IMAGE_NAME=${FEENK_APPLICATION_RELEASE_IMAGE_NAME} >> $GITHUB_ENV
+          echo FEENK_APPLICATION_RELEASE_CHANGES_NAME=${FEENK_APPLICATION_RELEASE_CHANGES_NAME} >> $GITHUB_ENV
+          echo FEENK_APPLICATION_RELEASE_ZIP=${FEENK_APPLICATION_RELEASE_ZIP} >> $GITHUB_ENV
+
+      # We need the SSH key to load code from private repositories and/or run GT Releaser
+      - name: Add SSH key
+        env:
+          SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+        run: |
+          mkdir -p /home/runner/.ssh
+          ssh-keyscan github.com >> /home/runner/.ssh/known_hosts
+          ssh-keyscan sftp.feenk.com >> /home/runner/.ssh/known_hosts
+          echo "${{ secrets.gt_releaser_ssh_key }}" > /home/runner/.ssh/github_actions
+          chmod 600 /home/runner/.ssh/github_actions
+          ssh-agent -a $SSH_AUTH_SOCK > /dev/null   
+          ssh-add /home/runner/.ssh/github_actions
+
+      - name: Check out repository code
+        uses: actions/checkout@v2
+
+      - name: Load Application Code
+        env:
+          SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+          ST_LOAD_SCRIPT_PATH: ${{ inputs.pharo_load_script_path }}
+        run: |
+          echo "::group::Figure Out GToolkit Version"
+          FEENK_GTOOLKIT_VERSION=$(curl -s https://api.github.com/repos/feenkcom/gtoolkit/releases/latest | grep tag_name | cut -d '"' -f 4)
+          echo FEENK_GTOOLKIT_VERSION=${FEENK_GTOOLKIT_VERSION} >> $GITHUB_ENV
+          echo "::endgroup::"
+
+          echo "::group::Download GToolkit Image"
+          wget https://github.com/feenkcom/gtoolkit/releases/download/${FEENK_GTOOLKIT_VERSION}/GlamorousToolkit-image-without-world.zip -O gt-image.zip
+          echo "::endgroup::"
+
+          echo "::group::Extract GToolkit Image"
+          unzip gt-image.zip
+          echo "::endgroup::"
+
+          echo "::group::Figure Out VM Builder Version"
+          wget https://raw.githubusercontent.com/feenkcom/gtoolkit/${FEENK_GTOOLKIT_VERSION}/gtoolkit-builder.version -O downloaded-gtoolkit-builder.version
+          FEENK_GTOOLKIT_BUILDER_VERSION=$(cat downloaded-gtoolkit-builder.version)
+          echo "Will install using gtoolkit-builder ${FEENK_GTOOLKIT_BUILDER_VERSION}"
+          echo "::endgroup::"
+
+          echo "::group::Download GT Installer"
+          wget https://github.com/feenkcom/gtoolkit-maestro-rs/releases/download/${FEENK_GTOOLKIT_BUILDER_VERSION}/gt-installer-x86_64-unknown-linux-gnu -O gt-installer
+          chmod +x gt-installer
+          echo "::endgroup::"
+
+          echo "::group::Download VM"
+          GTOOLKIT_VM_VERSION=$(./gt-installer print-gtoolkit-app-version)
+          echo "Will use gtoolkit-vm ${GTOOLKIT_VM_VERSION}"
+          echo GTOOLKIT_VM_VERSION=${GTOOLKIT_VM_VERSION} >> $GITHUB_ENV
+
+          wget https://github.com/feenkcom/gtoolkit-vm/releases/download/${GTOOLKIT_VM_VERSION}/GlamorousToolkit-x86_64-unknown-linux-gnu.zip -O GlamorousToolkit-x86_64-unknown-linux-gnu.zip
+
+          if [ "$?" -ne "0" ] ; then
+              echo "ERROR: Cannot download GlamorousToolkit-x86_64-unknown-linux-gnu.zip"
+              exit 2
+          fi
+          echo "::endgroup::"
+
+          echo "::group::Extract VM"
+          unzip GlamorousToolkit-x86_64-unknown-linux-gnu.zip
+          echo "::endgroup::"
+
+          echo "::group::List Files"
+          ls -al
+          echo "::endgroup::"
+
+          echo "::group::Load Smalltalk Code"
+          pwd
+          xvfb-run -a ./bin/GlamorousToolkit-cli ${{ env.FEENK_GTOOLKIT_IMAGE_NAME }} st --quit ${{ inputs.pharo_load_script_path }} 2>&1
+
+          if [ "$?" -ne "0" ] ; then
+              echo "ERROR: Cannot load Smalltalk code"
+              exit 3
+          fi
+          echo "::endgroup::"
+
+      - name: Run Unit Tests
+        env:
+          SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+        run: |
+          xvfb-run -a ./bin/GlamorousToolkit-cli ${{ env.FEENK_GTOOLKIT_IMAGE_NAME }} \
+            examples --junit-xml-output --fail-on-no-tests-executed --fail-on-failure --verbose ${{ inputs.pharo_test_packages }}
+
+      - name: Run Releaser
+        env:
+          SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+        run: |
+          echo "::group::Release"
+          xvfb-run -a -e /dev/stdout ./bin/GlamorousToolkit-cli ${{ env.FEENK_GTOOLKIT_IMAGE_NAME }} ${{ inputs.pharo_release_line_handler }}
+          if [ "$?" -ne "0" ] ; then
+              echo "ERROR: Cannot release using '${{ inputs.pharo_release_line_handler }}'' Pharo handler" >&2
+              exit 1
+          fi
+          echo "::endgroup::"
+
+          echo "::group:Set Release Version Variable"
+          FEENK_APPLICATION_RELEASE_VERSION="$(xvfb-run -a -e /dev/stdout ./bin/GlamorousToolkit-cli ${{ env.FEENK_GTOOLKIT_IMAGE_NAME }} ${{ inputs.pharo_release_version_line_handler }} | sed -n -e 's/^.*\(v[0-9]*\.[0-9]*\.[0-9]*\).*$/\1/p')"
+          if [ "$?" -ne "0" ] ; then
+              echo "ERROR: Cannot obtain application release version using '${{ inputs.pharo_release_version_line_handler }}'' Pharo handler" >&2
+              exit 2
+          fi
+          echo FEENK_APPLICATION_RELEASE_VERSION=${FEENK_APPLICATION_RELEASE_VERSION} >> $GITHUB_ENV
+          echo "Application was released as '${FEENK_APPLICATION_RELEASE_VERSION}' version."
+          echo "::endgroup::"
+
+      - name: Copy Glamorous Toolkit Image As Application Image
+        run: |
+          if [ -r "${{ env.FEENK_APPLICATION_RELEASE_IMAGE_NAME }}" ] ; then
+            echo "Application image called '${{ env.FEENK_APPLICATION_RELEASE_IMAGE_NAME }}' already exists."
+            exit 0
+          fi
+          cp "${{FEENK_GTOOLKIT_IMAGE_NAME}}" "${{ env.FEENK_APPLICATION_RELEASE_IMAGE_NAME }}"
+          cp "${{FEENK_GTOOLKIT_CHANGES_NAME}}" "${{ env.FEENK_APPLICATION_RELEASE_CHANGES_NAME }}"
+
+      - name: Compress Application Image
+        run: |
+          zip ${{ env.FEENK_APPLICATION_RELEASE_ZIP }} ${{ env.FEENK_APPLICATION_RELEASE_IMAGE_NAME }} ${{ env.FEENK_APPLICATION_RELEASE_CHANGES_NAME }}
+
+      - name: Application Build Temporary Archive
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ env.FEENK_APPLICATION_RELEASE_ZIP }}
+          path: ${{ env.FEENK_APPLICATION_RELEASE_ZIP }}
+          retention-days: 1
+          if-no-files-found: error
+
+      - name: Define Job Outputs
+        id: variables
+        run: |
+          echo "::set-output name=release_version::${{ env.FEENK_APPLICATION_RELEASE_VERSION }}"
+          echo "::set-output name=release_image::${{ env.FEENK_APPLICATION_RELEASE_IMAGE_NAME }}"
+          echo "::set-output name=release_changes::${{ env.FEENK_APPLICATION_RELEASE_CHANGES_NAME }}"
+          echo "::set-output name=release_zip::${{ env.FEENK_APPLICATION_RELEASE_ZIP }}"
