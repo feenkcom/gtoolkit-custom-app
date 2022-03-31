@@ -6,7 +6,7 @@ on:
   workflow_call:
     inputs: 
       app_name:
-        description: 'Application name, e.g., `GlamorousToolkit``, that will define a VM build, e.g., `GlamorousToolkit.app`'
+        description: 'Application name, e.g., `GlamorousToolkit`, that will define a VM build, e.g., `GlamorousToolkit.app`'
         required: true
         type: string
       app_author:
