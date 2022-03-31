@@ -184,8 +184,8 @@ jobs:
             echo "Application image called '${{ env.FEENK_APPLICATION_RELEASE_IMAGE_NAME }}' already exists."
             exit 0
           fi
-          cp "${{FEENK_GTOOLKIT_IMAGE_NAME}}" "${{ env.FEENK_APPLICATION_RELEASE_IMAGE_NAME }}"
-          cp "${{FEENK_GTOOLKIT_CHANGES_NAME}}" "${{ env.FEENK_APPLICATION_RELEASE_CHANGES_NAME }}"
+          cp "${{ env.FEENK_GTOOLKIT_IMAGE_NAME }}" "${{ env.FEENK_APPLICATION_RELEASE_IMAGE_NAME }}"
+          cp "${{ env.FEENK_GTOOLKIT_CHANGES_NAME }}" "${{ env.FEENK_APPLICATION_RELEASE_CHANGES_NAME }}"
 
       - name: Compress Application Image
         run: |
