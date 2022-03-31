@@ -27,10 +27,10 @@ on:
         type: string
 
     outputs:
-      release_version: ${{ jobs.Build-App.outputs.release_version }}
-      release_image: ${{ jobs.Build-App.outputs.release_image }}
-      release_changes: ${{ jobs.Build-App.outputs.release_changes }}
-      release_zip: ${{ jobs.Build-App.outputs.release_zip }}
+      release_version: ${{ jobs.Build-Image.outputs.release_version }}
+      release_image: ${{ jobs.Build-Image.outputs.release_image }}
+      release_changes: ${{ jobs.Build-Image.outputs.release_changes }}
+      release_zip: ${{ jobs.Build-Image.outputs.release_zip }}
 
     secrets:
       gt_releaser_ssh_key:
