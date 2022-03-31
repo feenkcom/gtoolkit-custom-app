@@ -27,10 +27,18 @@ on:
         type: string
 
     outputs:
-      release_version: ${{ jobs.Build-Image.outputs.release_version }}
-      release_image: ${{ jobs.Build-Image.outputs.release_image }}
-      release_changes: ${{ jobs.Build-Image.outputs.release_changes }}
-      release_zip: ${{ jobs.Build-Image.outputs.release_zip }}
+      release_version: 
+        description: 'Release version that was created, e.g., v0.3.21'
+        value: ${{ jobs.Build-Image.outputs.release_version }}
+      release_image: 
+        description: 'Release image file name, e.g., GlamorousToolkit.image'
+        value: ${{ jobs.Build-Image.outputs.release_image }}
+      release_changes: 
+        description: 'Release changes file name, e.g., GlamorousToolkit.changes'
+        value: ${{ jobs.Build-Image.outputs.release_changes }}
+      release_zip: 
+        description: 'Release ZIP file name that includes image and changes files, e.g., GlamorousToolkit.zip'
+        value: ${{ jobs.Build-Image.outputs.release_zip }}
 
     secrets:
       gt_releaser_ssh_key:
