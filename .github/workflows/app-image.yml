@@ -26,11 +26,11 @@ on:
         required: true
         type: string
       git_user_name:
-        description: 'Git username that is used to commit release code'
+        description: 'Git username that is used to commit release code, e.g., `Joe Doe`'
         required: yes
         type: string
       git_user_email:
-        description: 'Git user email that is used to commit release code'
+        description: 'Git user email that is used to commit release code, e.g., `joedoe@company.com`'
         required: yes
         type: string
 
