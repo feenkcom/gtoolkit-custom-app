@@ -25,6 +25,14 @@ on:
         description: 'Pharo line handler name that prints to the standard output release version created during `pharo_release_line_handler` execution, e.g., printProjectReleaseVersion'
         required: true
         type: string
+      git_user_name:
+        description: 'Git username that is used to commit release code'
+        required: yes
+        type: string
+      git_user_email:
+        description: 'Git user email that is used to commit release code'
+        required: yes
+        type: string
 
     outputs:
       release_version: 
@@ -69,9 +77,13 @@ jobs:
           FEENK_APPLICATION_RELEASE_CHANGES_NAME="${FEENK_APPLICATION_RELEASE_NAME}.changes"
           FEENK_APPLICATION_RELEASE_ZIP="${FEENK_APPLICATION_RELEASE_NAME}.zip"
           echo FEENK_APPLICATION_RELEASE_NAME=${FEENK_APPLICATION_RELEASE_NAME} >> $GITHUB_ENV
+          echo FEENK_APPLICATION_RELEASE_NAME=${FEENK_APPLICATION_RELEASE_NAME}
           echo FEENK_APPLICATION_RELEASE_IMAGE_NAME=${FEENK_APPLICATION_RELEASE_IMAGE_NAME} >> $GITHUB_ENV
+          echo FEENK_APPLICATION_RELEASE_IMAGE_NAME=${FEENK_APPLICATION_RELEASE_IMAGE_NAME}
           echo FEENK_APPLICATION_RELEASE_CHANGES_NAME=${FEENK_APPLICATION_RELEASE_CHANGES_NAME} >> $GITHUB_ENV
+          echo FEENK_APPLICATION_RELEASE_CHANGES_NAME=${FEENK_APPLICATION_RELEASE_CHANGES_NAME}
           echo FEENK_APPLICATION_RELEASE_ZIP=${FEENK_APPLICATION_RELEASE_ZIP} >> $GITHUB_ENV
+          echo FEENK_APPLICATION_RELEASE_ZIP=${FEENK_APPLICATION_RELEASE_ZIP}
 
       # We need the SSH key to load code from private repositories and/or run GT Releaser
       - name: Add SSH key
@@ -160,6 +172,11 @@ jobs:
         env:
           SSH_AUTH_SOCK: /tmp/ssh_agent.sock
         run: |
+          echo "::group::Configure Git Username and Email"
+          git config --global user.name "${{ inputs.git_user_name }}"
+          git config --global user.email "${{ inputs.git_user_email }}"
+          echo "::endgroup::"
+
           echo "::group::Release"
           xvfb-run -a -e /dev/stdout ./bin/GlamorousToolkit-cli ${{ env.FEENK_GTOOLKIT_IMAGE_NAME }} ${{ inputs.pharo_release_line_handler }}
           if [ "$?" -ne "0" ] ; then
