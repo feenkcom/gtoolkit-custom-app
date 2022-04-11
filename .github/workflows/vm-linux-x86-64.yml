@@ -21,7 +21,7 @@ on:
         description: 'Application libraries to include in a VM build'
         required: false
         type: string
-        default: 'boxer cairo clipboard crypto freetype git gleam glutin process sdl2 skia'
+        default: 'boxer cairo clipboard crypto freetype git gleam glutin process sdl2 skia winit pixels test-library'
 
     outputs:
       linux_release_name: 
