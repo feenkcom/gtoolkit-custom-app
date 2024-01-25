@@ -33,7 +33,7 @@ on:
 
 jobs:
   Linux_x86_64:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
 
     outputs:
       linux_release_name: ${{ steps.variables.outputs.linux_release_name }}
