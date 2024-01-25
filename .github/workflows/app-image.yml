@@ -131,8 +131,7 @@ jobs:
           echo "::endgroup::"
 
           echo "::group::Download VM"
-          ls
-          GTOOLKIT_VM_VERSION=$(./bin/GlamorousToolkit-cli --short-version)
+          GTOOLKIT_VM_VERSION=$(./gt-installer --workspace . print-gtoolkit-app-version)
           echo "Will use gtoolkit-vm ${GTOOLKIT_VM_VERSION}"
           echo GTOOLKIT_VM_VERSION=${GTOOLKIT_VM_VERSION} >> $GITHUB_ENV
 
