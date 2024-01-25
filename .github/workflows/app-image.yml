@@ -207,6 +207,8 @@ jobs:
       - name: Compress Application Image
         run: |
           zip ${{ env.FEENK_APPLICATION_RELEASE_ZIP }} ${{ env.FEENK_APPLICATION_RELEASE_IMAGE_NAME }} ${{ env.FEENK_APPLICATION_RELEASE_CHANGES_NAME }}
+          ls -lah
+          echo $FEENK_APPLICATION_RELEASE_ZIP
 
       - name: Application Build Temporary Archive
         uses: actions/upload-artifact@v3
